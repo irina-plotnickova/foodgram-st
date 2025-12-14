@@ -1,10 +1,14 @@
+version: '3.8'
+
 services:
   db:
     image: postgres:13.10
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    env_file:
-      - ../backend/.env
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: foodgram
+      POSTGRES_USER: foodgram_user
+      POSTGRES_PASSWORD: foodgram_password
 
   backend:
     build: ../backend
@@ -12,16 +16,20 @@ services:
     volumes:
       - static_volume:/app/static/
       - media_volume:/app/media/
+      - ../data:/app/data/
     depends_on:
       - db
-    env_file:
-      - ../backend/.env
-
-  frontend:
-    build: ../frontend
-    volumes:
-      - static_volume:/app/build/
-    command: sh -c "cp -r /app/build/* /static/ && exit 0"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      POSTGRES_DB: foodgram
+      POSTGRES_USER: foodgram_user
+      POSTGRES_PASSWORD: foodgram_password
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py load_ingredients &&
+             gunicorn foodgram.wsgi:application --bind 0.0.0.0:8000"
 
   nginx:
     build:
@@ -31,8 +39,13 @@ services:
       - "80:80"
     volumes:
       - static_volume:/static/
+      - media_volume:/media/
+      - ../frontend/build:/frontend_static/
     depends_on:
       - backend
+    command: >
+      sh -c "cp -r /frontend_static/. /static/ &&
+             nginx -g 'daemon off;'"
 
 volumes:
   postgres_data:
