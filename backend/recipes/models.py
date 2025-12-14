@@ -1,16 +1,13 @@
+from django.contrib.auth import get_user_model
 from django.db import models
-from backend.api.serializers import User
+from django.core.validators import MinValueValidator
+
+User = get_user_model()
 
 
 class Ingredient(models.Model):
-    name = models.CharField(
-        'Название ингредиента',
-        max_length=200,
-    )
-    measurement_unit = models.CharField(
-        'Единица измерения',
-        max_length=200,
-    )
+    name = models.CharField('Название ингредиента', max_length=200)
+    measurement_unit = models.CharField('Единица измерения', max_length=200)
 
     class Meta:
         ordering = ('name',)
@@ -28,21 +25,9 @@ class Ingredient(models.Model):
 
 
 class Tag(models.Model):
-    name = models.CharField(
-        'Название тега',
-        max_length=200,
-        unique=True,
-    )
-    color = models.CharField(
-        'Цвет в HEX',
-        max_length=7,
-        unique=True,
-    )
-    slug = models.SlugField(
-        'Уникальный слаг',
-        max_length=200,
-        unique=True,
-    )
+    name = models.CharField('Название тега', max_length=200, unique=True)
+    color = models.CharField('Цвет в HEX', max_length=7, unique=True)
+    slug = models.SlugField('Уникальный слаг', max_length=200, unique=True)
 
     class Meta:
         ordering = ('name',)
@@ -60,17 +45,9 @@ class Recipe(models.Model):
         related_name='recipes',
         verbose_name='Автор рецепта'
     )
-    name = models.CharField(
-        'Название рецепта',
-        max_length=200
-    )
-    image = models.ImageField(
-        'Картинка',
-        upload_to='recipes/'
-    )
-    text = models.TextField(
-        'Описание рецепта'
-    )
+    name = models.CharField('Название рецепта', max_length=200)
+    image = models.ImageField('Картинка', upload_to='recipes/')
+    text = models.TextField('Описание рецепта')
     ingredients = models.ManyToManyField(
         Ingredient,
         through='RecipeIngredient',
@@ -82,12 +59,8 @@ class Recipe(models.Model):
         verbose_name='Теги'
     )
     cooking_time = models.PositiveSmallIntegerField(
-        'Время приготовления (в минутах)'
-    )
-    pub_date = models.DateTimeField(
-        'Дата публикации',
-        auto_now_add=True
-    )
+        'Время приготовления (в минутах)')
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
 
     class Meta:
         ordering = ('-pub_date',)
@@ -112,9 +85,8 @@ class RecipeIngredient(models.Model):
     )
     amount = models.PositiveSmallIntegerField(
         'Количество',
-        validators=[
-            models.MinValueValidator(1, message='Минимальное количество 1!')
-        ]
+        validators=[MinValueValidator(
+            1, message='Минимальное количество 1!')]
     )
 
     class Meta:
@@ -129,38 +101,6 @@ class RecipeIngredient(models.Model):
 
     def __str__(self):
         return f'{self.ingredient} в рецепте {self.recipe}'
-
-
-class Subscription(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='subscriber',
-        verbose_name='Подписчик'
-    )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='subscribing',
-        verbose_name='Автор'
-    )
-
-    class Meta:
-        verbose_name = 'Подписка'
-        verbose_name_plural = 'Подписки'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'author'],
-                name='unique_subscription'
-            ),
-            models.CheckConstraint(
-                check=~models.Q(user=models.F('author')),
-                name='prevent_self_subscription'
-            )
-        ]
-
-    def __str__(self):
-        return f'{self.user} подписан на {self.author}'
 
 
 class Favorite(models.Model):

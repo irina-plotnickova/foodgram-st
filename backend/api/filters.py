@@ -1,7 +1,7 @@
 import django_filters
 from rest_framework.filters import SearchFilter
 
-from recipes.models import Ingredient, Recipe
+from recipes.models import Ingredient, Recipe, Tag
 
 
 class IngredientFilter(django_filters.FilterSet):
@@ -22,6 +22,7 @@ class RecipeFilter(django_filters.FilterSet):
     is_in_shopping_cart = django_filters.BooleanFilter(
         method='filter_is_in_shopping_cart'
     )
+    author = django_filters.NumberFilter(field_name='author__id')
 
     class Meta:
         model = Recipe
