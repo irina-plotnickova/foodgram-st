@@ -8,8 +8,17 @@ from rest_framework.validators import UniqueTogetherValidator
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingCart, Tag)
 from users.models import Subscription
+from djoser.serializers import UserCreateSerializer as BaseUserCreateSerializer
+from api.fields import Base64ImageField
 
 User = get_user_model()
+
+
+class UserCreateSerializer(BaseUserCreateSerializer):
+    class Meta(BaseUserCreateSerializer.Meta):
+        model = User
+        fields = ('id', 'email', 'username',
+                  'first_name', 'last_name', 'password')
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -21,7 +30,7 @@ class TagSerializer(serializers.ModelSerializer):
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
-        fields = ('id', 'name', 'measurement_unit')
+        fields = ['id', 'name', 'measurement_unit']
 
 
 class RecipeIngredientSerializer(serializers.ModelSerializer):
@@ -101,7 +110,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         many=True
     )
     ingredients = RecipeIngredientCreateSerializer(many=True)
-    image = serializers.ImageField()
+    image = Base64ImageField(required=True)
 
     class Meta:
         model = Recipe
@@ -185,28 +194,6 @@ class UserSerializer(serializers.ModelSerializer):
         return Subscription.objects.filter(
             user=request.user, author=obj
         ).exists()
-
-
-class UserCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = (
-            'email', 'id', 'username', 'first_name', 'last_name', 'password'
-        )
-        extra_kwargs = {
-            'password': {'write_only': True}
-        }
-
-    def create(self, validated_data):
-        user = User(
-            email=validated_data['email'],
-            username=validated_data['username'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-        )
-        user.set_password(validated_data['password'])
-        user.save()
-        return user
 
 
 class SubscribeSerializer(serializers.ModelSerializer):

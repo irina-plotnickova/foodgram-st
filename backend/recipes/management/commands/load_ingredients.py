@@ -10,11 +10,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         possible_paths = [
-            '/app/data/ingredients.csv',
+            # '/app/data/ingredients.csv',
             '/app/data/ingredients.json',
-            'data/ingredients.csv',
+            # 'data/ingredients.csv',
             'data/ingredients.json',
-            '../data/ingredients.csv',
+            # '../data/ingredients.csv',
             '../data/ingredients.json',
         ]
 
