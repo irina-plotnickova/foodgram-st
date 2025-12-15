@@ -1,4 +1,5 @@
 import base64
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -15,7 +16,7 @@ from users.models import Subscription, User
 
 from .filters import IngredientFilter, RecipeFilter
 from .permissions import IsAuthorOrReadOnly
-from .serializers import (FavoriteSerializer, IngredientSerializer,
+from .serializers import (AvatarSerializer, FavoriteSerializer, IngredientSerializer,
                           RecipeCreateSerializer, RecipeReadSerializer,
                           ShoppingCartSerializer, SubscribeSerializer,
                           UserSerializer, UserCreateSerializer)
@@ -29,16 +30,41 @@ class UserCreateView(generics.CreateAPIView):
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
+    serializer_class = UserSerializer
+    parser_classes = (MultiPartParser, FormParser)
 
     def get_permissions(self):
-        if self.action == 'create':
-            return [permissions.AllowAny()]
-        return [IsAuthenticatedOrReadOnly()]
+        if self.action in ('me', 'avatar'):
+            return (IsAuthenticated(),)
+        return super().get_permissions()
 
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return UserCreateSerializer
-        return UserSerializer
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=['put', 'delete'],
+        url_path='me/avatar',
+        permission_classes=(IsAuthenticated,),
+        parser_classes=[MultiPartParser, FormParser, JSONParser]
+    )
+    def avatar(self, request):
+        user = request.user
+
+        if request.method == 'PUT':
+            serializer = AvatarSerializer(
+                user,
+                data=request.data
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+
+        if request.method == 'DELETE':
+            user.avatar.delete(save=True)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):

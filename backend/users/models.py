@@ -8,6 +8,12 @@ class User(AbstractUser):
         max_length=254,
         unique=True,
     )
+    avatar = models.ImageField(
+        upload_to='users/',
+        null=True,
+        blank=True
+    )
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
