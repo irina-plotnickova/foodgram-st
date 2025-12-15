@@ -111,6 +111,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     )
     ingredients = RecipeIngredientCreateSerializer(many=True)
     image = Base64ImageField(required=True)
+    cooking_time = serializers.IntegerField(required=True)
 
     class Meta:
         model = Recipe
