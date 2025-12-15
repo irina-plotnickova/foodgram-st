@@ -107,11 +107,14 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 class RecipeCreateSerializer(serializers.ModelSerializer):
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
-        many=True
+        many=True,
     )
     ingredients = RecipeIngredientCreateSerializer(many=True)
     image = Base64ImageField(required=True)
-    cooking_time = serializers.IntegerField(required=True)
+    cooking_time = serializers.IntegerField(
+        required=True,
+        min_value=1,
+        error_messages={'min_value': 'Время приготовления минимум 1 минута'})
 
     class Meta:
         model = Recipe
