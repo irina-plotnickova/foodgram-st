@@ -1,7 +1,5 @@
 import django_filters
-from rest_framework.filters import SearchFilter
-
-from recipes.models import Ingredient, Recipe, Tag
+from recipes.models import Ingredient, Recipe
 
 
 class IngredientFilter(django_filters.FilterSet):
@@ -13,9 +11,6 @@ class IngredientFilter(django_filters.FilterSet):
 
 
 class RecipeFilter(django_filters.FilterSet):
-    tags = django_filters.AllValuesMultipleFilter(
-        field_name='tags__slug',
-    )
     is_favorited = django_filters.BooleanFilter(
         method='filter_is_favorited'
     )
@@ -26,7 +21,7 @@ class RecipeFilter(django_filters.FilterSet):
 
     class Meta:
         model = Recipe
-        fields = ('tags', 'author', 'is_favorited', 'is_in_shopping_cart')
+        fields = ('author', 'is_favorited', 'is_in_shopping_cart')
 
     def filter_is_favorited(self, queryset, name, value):
         if value and self.request.user.is_authenticated:

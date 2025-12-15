@@ -148,11 +148,15 @@ AUTH_USER_MODEL = 'users.User'
 CORS_ORIGIN_ALLOW_ALL = True
 
 REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 6,
@@ -161,15 +165,17 @@ REST_FRAMEWORK = {
 
 DJOSER = {
     'LOGIN_FIELD': 'email',
-    'USER_CREATE_PASSWORD_RETYPE': False,
+    'HIDE_USERS': False,
     'SERIALIZERS': {
         'user_create': 'api.serializers.UserCreateSerializer',
         'user': 'api.serializers.UserSerializer',
         'current_user': 'api.serializers.UserSerializer',
     },
     'PERMISSIONS': {
-        'user': ['rest_framework.permissions.IsAuthenticated'],
+        'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
         'user_list': ['rest_framework.permissions.AllowAny'],
         'user_create': ['rest_framework.permissions.AllowAny'],
+        'token_create': ['rest_framework.permissions.AllowAny'],
+        'token_destroy': ['rest_framework.permissions.IsAuthenticated'],
     },
 }

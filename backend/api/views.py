@@ -1,16 +1,16 @@
+import base64
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, viewsets, filters, serializers
+from rest_framework import status, viewsets, generics, permissions
 from rest_framework.decorators import action
 from rest_framework.permissions import (SAFE_METHODS, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST
 
-from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingCart, Tag)
+from users.models_favorites import Favorite, ShoppingCart
+from recipes.models import Ingredient, Recipe, RecipeIngredient
 from users.models import Subscription, User
 
 from .filters import IngredientFilter, RecipeFilter
@@ -18,13 +18,27 @@ from .permissions import IsAuthorOrReadOnly
 from .serializers import (FavoriteSerializer, IngredientSerializer,
                           RecipeCreateSerializer, RecipeReadSerializer,
                           ShoppingCartSerializer, SubscribeSerializer,
-                          TagSerializer, UserSerializer, UserCreateSerializer)
+                          UserSerializer, UserCreateSerializer)
 
 
-class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Tag.objects.all()
-    serializer_class = TagSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+class UserCreateView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserCreateSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.AllowAny()]
+        return [IsAuthenticatedOrReadOnly()]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return UserCreateSerializer
+        return UserSerializer
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -55,14 +69,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            print('ERRORS:', serializer.errors)
-            return Response(serializer.errors, status=400)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=201)
-
     @action(detail=True, methods=['post', 'delete'],
             permission_classes=(IsAuthenticated,))
     def favorite(self, request, pk):
@@ -91,6 +97,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
             favorite.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['get'])
+    def get_link(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
+        short_code = base64.urlsafe_b64encode(
+            str(recipe.id).encode()).decode()[:6]
+        short_link = f"https://{request.get_host()}/s/{short_code}"
+
+        return Response({'short-link': short_link})
 
     @action(detail=True, methods=['post', 'delete'],
             permission_classes=(IsAuthenticated,))

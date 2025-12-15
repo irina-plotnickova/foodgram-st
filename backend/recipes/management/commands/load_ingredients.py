@@ -6,15 +6,12 @@ from recipes.models import Ingredient
 
 
 class Command(BaseCommand):
-    help = 'Загрузка ингредиентов из CSV или JSON файла'
+    help = 'Загрузка ингредиентов из JSON файла'
 
     def handle(self, *args, **options):
         possible_paths = [
-            # '/app/data/ingredients.csv',
             '/app/data/ingredients.json',
-            # 'data/ingredients.csv',
             'data/ingredients.json',
-            # '../data/ingredients.csv',
             '../data/ingredients.json',
         ]
 
