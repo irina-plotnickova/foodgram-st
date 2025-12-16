@@ -31,12 +31,18 @@ class UserCreateView(generics.CreateAPIView):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [permissions.AllowAny]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_permissions(self):
         if self.action in ('me', 'avatar'):
             return (IsAuthenticated(),)
         return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return UserCreateSerializer
+        return UserSerializer
 
     @action(detail=False, methods=['get'])
     def me(self, request):
@@ -48,11 +54,9 @@ class UserViewSet(viewsets.ModelViewSet):
         methods=['put', 'delete'],
         url_path='me/avatar',
         permission_classes=(IsAuthenticated,),
-        parser_classes=[MultiPartParser, FormParser, JSONParser]
     )
     def avatar(self, request):
         user = request.user
-
         if request.method == 'PUT':
             serializer = AvatarSerializer(
                 user,
@@ -60,18 +64,86 @@ class UserViewSet(viewsets.ModelViewSet):
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            return Response(serializer.data)
+            user.refresh_from_db()
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
         if request.method == 'DELETE':
-            user.avatar.delete(save=True)
+            if user.avatar:
+                user.avatar.delete()
+            user.avatar = None
+            user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=(IsAuthenticated,),
+        url_path='subscribe'
+    )
+    def subscribe(self, request, pk=None):
+        author = get_object_or_404(User, pk=pk)
+        user = request.user
+
+        if request.method == 'POST':
+            if Subscription.objects.filter(user=user, author=author).exists():
+                return Response(
+                    {'errors': 'Вы уже подписаны на этого автора'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if user == author:
+                return Response(
+                    {'errors': 'Нельзя подписаться на себя'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            subscription = Subscription.objects.create(
+                user=user, author=author)
+            serializer = SubscribeSerializer(
+                author, context={'request': request}
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        if request.method == 'DELETE':
+            subscription = Subscription.objects.filter(
+                user=user, author=author)
+            if not subscription.exists():
+                return Response(
+                    {'errors': 'Вы не подписаны на этого автора'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            subscription.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(IsAuthenticated,),
+        url_path='subscriptions'
+    )
+    def subscriptions(self, request):
+        user = request.user
+
+        subscriptions = User.objects.filter(
+            subscribing__user=user
+        ).distinct()
+
+        page = self.paginate_queryset(subscriptions)
+        if page is not None:
+            serializer = SubscribeSerializer(
+                page, many=True, context={'request': request}
+            )
+            return self.get_paginated_response(serializer.data)
+
+        serializer = SubscribeSerializer(
+            subscriptions, many=True, context={'request': request}
+        )
+        return Response(serializer.data)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = None
-    permission_classes = (IsAuthorOrReadOnly,)
+    permission_classes = (permissions.AllowAny,)
 
     def get_queryset(self):
         queryset = Ingredient.objects.all()
@@ -94,6 +166,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save()
 
     @action(detail=True, methods=['post', 'delete'],
             permission_classes=(IsAuthenticated,))

@@ -30,17 +30,32 @@ class Base64ImageField(serializers.ImageField):
 class UserCreateSerializer(BaseUserCreateSerializer):
     class Meta(BaseUserCreateSerializer.Meta):
         model = User
-        fields = ('id', 'email', 'username',
-                  'first_name', 'last_name', 'password')
+        fields = ('id', 'email', 'username', 'first_name',
+                  'last_name', 'password', 'avatar')
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True},
+            'avatar': {'required': False}
         }
 
 
 class UserSerializer(serializers.ModelSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+    avatar = serializers.ImageField(read_only=True)
+
     class Meta:
         model = User
-        fields = ('id', 'email', 'username', 'first_name', 'last_name')
+        fields = ('id', 'email', 'username', 'first_name',
+                  'last_name', 'avatar', 'is_subscribed')
+        read_only_fields = ('avatar',)
+
+    def get_is_subscribed(self, obj):
+        request = self.context.get('request')
+        if not request or request.user.is_anonymous:
+            return False
+        return Subscription.objects.filter(
+            user_id=request.user.id,
+            author_id=obj.id
+        ).exists()
 
 
 class AvatarSerializer(serializers.ModelSerializer):
@@ -130,6 +145,9 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ('author',)
 
     def validate_ingredients(self, value):
+        if value is None:
+            return value
+
         if not value:
             raise serializers.ValidationError(
                 'Нужно добавить хотя бы один ингредиент'
@@ -157,10 +175,17 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients', None)
-        instance = super().update(instance, validated_data)
+
+        for attr, value in validated_data.items():
+            if attr == 'image' and value is None:
+                continue
+            setattr(instance, attr, value)
+        instance.save()
+        
         if ingredients is not None:
             instance.recipe_ingredients.all().delete()
             self.add_ingredients(instance, ingredients)
+
         return instance
 
     def to_representation(self, instance):
@@ -168,26 +193,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             instance,
             context={'request': self.context.get('request')}
         ).data
-
-
-class UserSerializer(serializers.ModelSerializer):
-    is_subscribed = serializers.SerializerMethodField()
-
-    class Meta:
-        model = User
-        fields = (
-            'email', 'id', 'username', 'first_name', 'last_name',
-            'is_subscribed'
-        )
-
-    def get_is_subscribed(self, obj):
-        request = self.context.get('request')
-        if not request or request.user.is_anonymous:
-            return False
-        return Subscription.objects.filter(
-            user_id=request.user.id,
-            author_id=obj.id
-        ).exists()
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
@@ -208,10 +213,16 @@ class SubscribeSerializer(serializers.ModelSerializer):
 
     def get_recipes(self, obj):
         request = self.context.get('request')
-        limit = request.GET.get('recipes_limit')
+        limit = None
+        if request:
+            limit = request.query_params.get(
+                'recipes_limit') or request.data.get('recipes_limit')
         recipes = obj.recipes.all()
         if limit:
-            recipes = recipes[:int(limit)]
+            try:
+                recipes = recipes[:int(limit)]
+            except (ValueError, TypeError):
+                pass
         return RecipeShortSerializer(
             recipes, many=True, context={'request': request}
         ).data

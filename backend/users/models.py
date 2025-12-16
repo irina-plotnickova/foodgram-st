@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.conf import settings
 
 
 class User(AbstractUser):
@@ -28,13 +29,13 @@ class User(AbstractUser):
 
 class Subscription(models.Model):
     user = models.ForeignKey(
-        'self',
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='subscriber',
         verbose_name='Подписчик'
     )
     author = models.ForeignKey(
-        'self',
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='subscribing',
         verbose_name='Автор'

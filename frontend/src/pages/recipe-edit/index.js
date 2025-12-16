@@ -172,14 +172,13 @@ const RecipeEdit = ({ onItemDelete }) => {
                 }
                 if (ingredients) {
                   return setSubmitError({
-                    submitError: `Ингредиенты: ${
-                      ingredients
+                    submitError: `Ингредиенты: ${ingredients
                         .filter((item) => Object.keys(item).length)
                         .map((item) => {
                           const error = item[Object.keys(item)[0]];
                           return error && error.join(" ,");
                         })[0]
-                    }`,
+                      }`,
                   });
                 }
                 if (cooking_time) {
