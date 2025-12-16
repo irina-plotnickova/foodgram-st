@@ -177,5 +177,10 @@ DJOSER = {
         'user_create': ['rest_framework.permissions.AllowAny'],
         'token_create': ['rest_framework.permissions.AllowAny'],
         'token_destroy': ['rest_framework.permissions.IsAuthenticated'],
+        'set_password': ['rest_framework.permissions.IsAuthenticated'],
+        'set_email': ['rest_framework.permissions.IsAuthenticated'],
+        'set_username': ['rest_framework.permissions.IsAuthenticated'],
+        'reset_password': ['rest_framework.permissions.AllowAny'],
+        'reset_email': ['rest_framework.permissions.AllowAny'],
     },
 }

@@ -11,10 +11,10 @@ class IngredientFilter(django_filters.FilterSet):
 
 
 class RecipeFilter(django_filters.FilterSet):
-    is_favorited = django_filters.BooleanFilter(
+    is_favorited = django_filters.CharFilter(
         method='filter_is_favorited'
     )
-    is_in_shopping_cart = django_filters.BooleanFilter(
+    is_in_shopping_cart = django_filters.CharFilter(
         method='filter_is_in_shopping_cart'
     )
     author = django_filters.NumberFilter(field_name='author__id')
@@ -28,17 +28,15 @@ class RecipeFilter(django_filters.FilterSet):
         if not user.is_authenticated:
             return queryset
 
-        if value:
+        if value in ('1', 'true', 'True'):
             return queryset.filter(in_favorites__user=user).distinct()
-        else:
-            return queryset.exclude(in_favorites__user=user).distinct()
+        return queryset
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
         user = self.request.user
         if not user.is_authenticated:
             return queryset
 
-        if value:
+        if value in ('1', 'true', 'True'):
             return queryset.filter(in_shopping_cart__user=user).distinct()
-        else:
-            return queryset.exclude(in_shopping_cart__user=user).distinct()
+        return queryset

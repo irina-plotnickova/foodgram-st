@@ -9,6 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import (SAFE_METHODS, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
+from djoser.views import UserViewSet as DjoserUserViewSet
 
 from users.models_favorites import Favorite, ShoppingCart
 from recipes.models import Ingredient, Recipe, RecipeIngredient
@@ -28,10 +29,7 @@ class UserCreateView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny]
+class UserViewSet(DjoserUserViewSet):
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_permissions(self):
@@ -42,12 +40,8 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return UserCreateSerializer
-        return UserSerializer
-
-    @action(detail=False, methods=['get'])
-    def me(self, request):
-        serializer = self.get_serializer(request.user)
-        return Response(serializer.data)
+        # Let Djoser handle other serializer classes
+        return super().get_serializer_class()
 
     @action(
         detail=False,
