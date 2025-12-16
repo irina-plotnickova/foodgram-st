@@ -29,21 +29,22 @@ class UserCreateView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
 
-class UserViewSet(DjoserUserViewSet):
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
     parser_classes = [JSONParser, MultiPartParser, FormParser]
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
-        if self.action in ('me', 'avatar', 'set_password', 'set_email', 'set_username'):
+        if self.action in ('me', 'avatar', 'set_password', 'set_email', 'set_username', 'subscribe', 'subscriptions'):
             return (IsAuthenticated(),)
-        if self.action in ('list', 'retrieve'):
+        if self.action in ('list', 'retrieve', 'create'):
             return (permissions.AllowAny(),)
         return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action == 'create':
             return UserCreateSerializer
-        return super().get_serializer_class()
+        return UserSerializer
 
     @action(
         detail=False,
@@ -69,6 +70,46 @@ class UserViewSet(DjoserUserViewSet):
             user.avatar = None
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(IsAuthenticated,),
+    )
+    def me(self, request):
+        serializer = UserSerializer(request.user, context={'request': request})
+        return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=['put'],
+        permission_classes=(IsAuthenticated,),
+    )
+    def set_password(self, request):
+        user = request.user
+        serializer = UserSerializer(user, context={'request': request})
+        new_password = request.data.get('new_password')
+        current_password = request.data.get('current_password')
+        
+        if not new_password:
+            return Response(
+                {'new_password': 'Это поле обязательно.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not current_password:
+            return Response(
+                {'current_password': 'Это поле обязательно.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not user.check_password(current_password):
+            return Response(
+                {'current_password': 'Текущий пароль неверный.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user.set_password(new_password)
+        user.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
         detail=True,
