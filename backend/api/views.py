@@ -31,16 +31,18 @@ class UserCreateView(generics.CreateAPIView):
 
 class UserViewSet(DjoserUserViewSet):
     parser_classes = [JSONParser, MultiPartParser, FormParser]
+    permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
-        if self.action in ('me', 'avatar'):
+        if self.action in ('me', 'avatar', 'set_password', 'set_email', 'set_username'):
             return (IsAuthenticated(),)
+        if self.action in ('list', 'retrieve'):
+            return (permissions.AllowAny(),)
         return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action == 'create':
             return UserCreateSerializer
-        # Let Djoser handle other serializer classes
         return super().get_serializer_class()
 
     @action(
