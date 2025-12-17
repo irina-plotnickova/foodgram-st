@@ -1,8 +1,11 @@
 from django.contrib.auth import get_user_model
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 User = get_user_model()
+
+MIN_VALUE = 1
+MAX_VALUE = 32_000
 
 
 class Ingredient(models.Model):
@@ -57,7 +60,13 @@ class Recipe(models.Model):
         'Время приготовления (в минутах)',
         validators=[
             MinValueValidator(
-                1, message='Минимальное время приготовления 1 минута!')
+                MIN_VALUE,
+                message='Минимальное время приготовления 1 минута!'
+            ),
+            MaxValueValidator(
+                MAX_VALUE,
+                message='Максимальное время приготовления 32000 минут!'
+            ),
         ]
     )
     pub_date = models.DateTimeField(
@@ -89,11 +98,19 @@ class RecipeIngredient(models.Model):
     amount = models.PositiveSmallIntegerField(
         'Количество',
         validators=[
-            MinValueValidator(1, message='Минимальное количество 1!')
+            MinValueValidator(
+                MIN_VALUE,
+                message='Минимальное количество 1!'
+            ),
+            MaxValueValidator(
+                MAX_VALUE,
+                message='Максимальное количество 32000!'
+            ),
         ]
     )
 
     class Meta:
+        ordering = ('recipe', 'ingredient')
         verbose_name = 'Ингредиент в рецепте'
         verbose_name_plural = 'Ингредиенты в рецептах'
         constraints = [

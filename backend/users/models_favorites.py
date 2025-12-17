@@ -21,6 +21,7 @@ class Favorite(models.Model):
     )
 
     class Meta:
+        ordering = ('user', 'recipe')
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
         constraints = [
@@ -49,6 +50,7 @@ class ShoppingCart(models.Model):
     )
 
     class Meta:
+        ordering = ('user', 'recipe')
         verbose_name = 'Корзина покупок'
         verbose_name_plural = 'Корзины покупок'
         constraints = [

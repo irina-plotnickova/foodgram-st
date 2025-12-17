@@ -11,6 +11,10 @@ from recipes.models import (Ingredient, Recipe, RecipeIngredient)
 from users.models import Subscription, User
 
 
+MIN_AMOUNT = 1
+MAX_AMOUNT = 32_000
+
+
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
         from django.core.files.base import ContentFile
@@ -52,10 +56,7 @@ class UserSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or request.user.is_anonymous:
             return False
-        return Subscription.objects.filter(
-            user_id=request.user.id,
-            author_id=obj.id
-        ).exists()
+        return request.user.subscriber.filter(author=obj).exists()
 
 
 class AvatarSerializer(serializers.ModelSerializer):
@@ -87,9 +88,11 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 class RecipeIngredientCreateSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
     amount = serializers.IntegerField(
-        min_value=1,
+        min_value=MIN_AMOUNT,
+        max_value=MAX_AMOUNT,
         error_messages={
-            'min_value': 'Минимальное количество ингредиента - 1'
+            'min_value': 'Минимальное количество ингредиента — 1',
+            'max_value': 'Максимальное количество ингредиента — 32000',
         }
     )
 
@@ -120,22 +123,23 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request is None or request.user.is_anonymous:
             return False
-        return Favorite.objects.filter(
-            user=request.user, recipe=obj
-        ).exists()
+        return request.user.favorites.filter(recipe=obj).exists()
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request')
         if request is None or request.user.is_anonymous:
             return False
-        return ShoppingCart.objects.filter(
-            user=request.user, recipe=obj
-        ).exists()
+        return request.user.shopping_cart.filter(recipe=obj).exists()
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
     ingredients = RecipeIngredientCreateSerializer(many=True)
     image = Base64ImageField(required=False)
+
+    cooking_time = serializers.IntegerField(
+        min_value=MIN_AMOUNT,
+        max_value=MAX_AMOUNT
+    )
 
     class Meta:
         model = Recipe

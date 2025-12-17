@@ -35,7 +35,8 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
-        if self.action in ('me', 'avatar', 'set_password', 'set_email', 'set_username', 'subscribe', 'subscriptions'):
+        if self.action in ('me', 'avatar', 'set_password', 'set_email',
+                           'set_username', 'subscribe', 'subscriptions'):
             return (IsAuthenticated(),)
         if self.action in ('list', 'retrieve', 'create'):
             return (permissions.AllowAny(),)
@@ -90,7 +91,7 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = UserSerializer(user, context={'request': request})
         new_password = request.data.get('new_password')
         current_password = request.data.get('current_password')
-        
+
         if not new_password:
             return Response(
                 {'new_password': 'Это поле обязательно.'},
@@ -106,7 +107,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 {'current_password': 'Текущий пароль неверный.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         user.set_password(new_password)
         user.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -122,7 +123,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user = request.user
 
         if request.method == 'POST':
-            if Subscription.objects.filter(user=user, author=author).exists():
+            if user.subscriber.filter(author=author).exists():
                 return Response(
                     {'errors': 'Вы уже подписаны на этого автора'},
                     status=status.HTTP_400_BAD_REQUEST
@@ -140,8 +141,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':
-            subscription = Subscription.objects.filter(
-                user=user, author=author)
+            subscription = user.subscriber.filter(author=author)
             if not subscription.exists():
                 return Response(
                     {'errors': 'Вы не подписаны на этого автора'},
@@ -213,7 +213,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=pk)
 
         if request.method == 'POST':
-            if Favorite.objects.filter(user=request.user, recipe=recipe).exists():
+            if request.user.favorites.filter(recipe=recipe).exists():
                 return Response(
                     {'errors': 'Рецепт уже в избранном'},
                     status=status.HTTP_400_BAD_REQUEST
@@ -226,8 +226,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':
-            favorite = Favorite.objects.filter(
-                user=request.user, recipe=recipe)
+            favorite = request.user.favorites.filter(recipe=recipe)
             if not favorite.exists():
                 return Response(
                     {'errors': 'Рецепта нет в избранном'},
@@ -251,7 +250,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=pk)
 
         if request.method == 'POST':
-            if ShoppingCart.objects.filter(user=request.user, recipe=recipe).exists():
+            if request.user.shopping_cart.filter(recipe=recipe).exists():
                 return Response(
                     {'errors': 'Рецепт уже в корзине'},
                     status=status.HTTP_400_BAD_REQUEST
@@ -264,8 +263,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':
-            cart = ShoppingCart.objects.filter(
-                user=request.user, recipe=recipe)
+            cart = request.user.shopping_cart.filter(recipe=recipe)
             if not cart.exists():
                 return Response(
                     {'errors': 'Рецепта нет в корзине'},
