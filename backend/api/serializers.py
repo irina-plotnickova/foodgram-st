@@ -1,14 +1,12 @@
 import base64
-from djoser.serializers import UserCreateSerializer as BaseUserCreateSerializer
-from django.core.exceptions import ValidationError
-from django.shortcuts import get_object_or_404
+
+from djoser.serializers import UserCreateSerializer as BaseUserCrSerializer
 from rest_framework import serializers
-from rest_framework.relations import SlugRelatedField
 from rest_framework.validators import UniqueTogetherValidator
 
+from recipes.models import Ingredient, Recipe, RecipeIngredient
 from users.models_favorites import Favorite, ShoppingCart
-from recipes.models import (Ingredient, Recipe, RecipeIngredient)
-from users.models import Subscription, User
+from users.models import User
 
 
 MIN_AMOUNT = 1
@@ -31,8 +29,8 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
-class UserCreateSerializer(BaseUserCreateSerializer):
-    class Meta(BaseUserCreateSerializer.Meta):
+class UserCreateSerializer(BaseUserCrSerializer):
+    class Meta(BaseUserCrSerializer.Meta):
         model = User
         fields = ('id', 'email', 'username', 'first_name',
                   'last_name', 'password', 'avatar')

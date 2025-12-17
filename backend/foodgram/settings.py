@@ -22,7 +22,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv(
-    'SECRET_KEY', 'django-insecure-nd=85!q!tqo@c*o+hf+k&bf+!pxdb(2_vj6=(pt3n=*7hiqg!!')
+    'SECRET_KEY',
+    'django-insecure-nd=85!q!tqo@c*o+hf+k&bf+!pxdb(2_vj6=(pt3n=*7hiqg!!')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -164,7 +165,8 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS':
+        'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 6,
 }
 

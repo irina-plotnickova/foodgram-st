@@ -1,26 +1,26 @@
 import base64
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets, generics, permissions
 from rest_framework.decorators import action
-from rest_framework.permissions import (SAFE_METHODS, IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
-from djoser.views import UserViewSet as DjoserUserViewSet
 
-from users.models_favorites import Favorite, ShoppingCart
 from recipes.models import Ingredient, Recipe, RecipeIngredient
+from users.models_favorites import Favorite, ShoppingCart
 from users.models import Subscription, User
 
-from .filters import IngredientFilter, RecipeFilter
+from .filters import RecipeFilter
 from .permissions import IsAuthorOrReadOnly
-from .serializers import (AvatarSerializer, FavoriteSerializer, IngredientSerializer,
+from .serializers import (AvatarSerializer, FavoriteSerializer,
+                          IngredientSerializer,
                           RecipeCreateSerializer, RecipeReadSerializer,
                           ShoppingCartSerializer, SubscribeSerializer,
-                          UserSerializer, UserCreateSerializer)
+                          UserCreateSerializer, UserSerializer)
 
 
 class UserCreateView(generics.CreateAPIView):
