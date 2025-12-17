@@ -19,11 +19,13 @@ services:
     depends_on:
       - db
     environment:
+      USE_POSTGRES: "true"
       DB_HOST: db
       DB_PORT: 5432
       POSTGRES_DB: foodgram
       POSTGRES_USER: foodgram_user
       POSTGRES_PASSWORD: foodgram_password
+      DEBUG: "false"
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&

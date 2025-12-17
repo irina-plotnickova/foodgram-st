@@ -84,7 +84,6 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-# Use SQLite for local development, PostgreSQL for production
 if os.getenv('USE_POSTGRES', 'False').lower() == 'true':
     DATABASES = {
         'default': {

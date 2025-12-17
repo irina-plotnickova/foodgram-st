@@ -154,7 +154,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Ингредиенты должны быть уникальными'
             )
-        # Check that all ingredients exist
         existing_ids = set(
             Ingredient.objects.filter(id__in=ingredient_ids)
             .values_list('id', flat=True)
@@ -167,7 +166,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        # For creation, image is required
         if self.instance is None:
             if 'image' not in data or not data['image']:
                 raise serializers.ValidationError(
