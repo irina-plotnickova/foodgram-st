@@ -135,7 +135,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
     ingredients = RecipeIngredientCreateSerializer(many=True)
-    image = Base64ImageField()
+    image = Base64ImageField(required=False)
 
     class Meta:
         model = Recipe
@@ -145,43 +145,60 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ('author',)
 
     def validate_ingredients(self, value):
-        if value is None:
-            return value
-
         if not value:
             raise serializers.ValidationError(
                 'Нужно добавить хотя бы один ингредиент'
             )
-        ingredients = [item['id'] for item in value]
-        if len(ingredients) != len(set(ingredients)):
+        ingredient_ids = [item['id'] for item in value]
+        if len(ingredient_ids) != len(set(ingredient_ids)):
             raise serializers.ValidationError(
                 'Ингредиенты должны быть уникальными'
             )
+        # Check that all ingredients exist
+        existing_ids = set(
+            Ingredient.objects.filter(id__in=ingredient_ids)
+            .values_list('id', flat=True)
+        )
+        missing_ids = set(ingredient_ids) - existing_ids
+        if missing_ids:
+            raise serializers.ValidationError(
+                f'Ингредиенты с id {missing_ids} не существуют'
+            )
         return value
 
+    def validate(self, data):
+        # For creation, image is required
+        if self.instance is None:
+            if 'image' not in data or not data['image']:
+                raise serializers.ValidationError(
+                    {'image': 'Это поле обязательно при создании рецепта.'}
+                )
+        return data
+
     def add_ingredients(self, recipe, ingredients):
-        for ingredient in ingredients:
-            RecipeIngredient.objects.update_or_create(
+        RecipeIngredient.objects.bulk_create([
+            RecipeIngredient(
                 recipe=recipe,
                 ingredient_id=ingredient['id'],
-                defaults={'amount': ingredient['amount']}
+                amount=ingredient['amount']
             )
+            for ingredient in ingredients
+        ])
         return recipe
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         recipe = Recipe.objects.create(**validated_data)
-        return self.add_ingredients(recipe, ingredients)
+        self.add_ingredients(recipe, ingredients)
+        return recipe
 
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients', None)
 
         for attr, value in validated_data.items():
-            if attr == 'image' and value is None:
-                continue
             setattr(instance, attr, value)
         instance.save()
-        
+
         if ingredients is not None:
             instance.recipe_ingredients.all().delete()
             self.add_ingredients(instance, ingredients)
