@@ -3,10 +3,10 @@ name: Foodgram CI/CD Pipeline
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   # Stage 1: Run automated tests
