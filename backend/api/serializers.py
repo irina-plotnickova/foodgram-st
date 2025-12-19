@@ -33,10 +33,11 @@ class UserCreateSerializer(BaseUserCrSerializer):
     class Meta(BaseUserCrSerializer.Meta):
         model = User
         fields = ('id', 'email', 'username', 'first_name',
-                  'last_name', 'password', 'avatar')
+                  'last_name', 'password')
         extra_kwargs = {
             'password': {'write_only': True},
-            'avatar': {'required': False}
+            'first_name': {'required': True},
+            'last_name': {'required': True}
         }
 
 
@@ -195,13 +196,17 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients', None)
 
+        if ingredients is None:
+            raise serializers.ValidationError(
+                {'ingredients': 'Это поле обязательно при обновлении рецепта.'}
+            )
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        if ingredients is not None:
-            instance.recipe_ingredients.all().delete()
-            self.add_ingredients(instance, ingredients)
+        instance.recipe_ingredients.all().delete()
+        self.add_ingredients(instance, ingredients)
 
         return instance
 
@@ -216,14 +221,15 @@ class SubscribeSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
+    avatar = serializers.ImageField(read_only=True)
 
     class Meta:
         model = User
         fields = (
-            'email', 'id', 'username', 'first_name', 'last_name',
+            'email', 'id', 'username', 'first_name', 'last_name', 'avatar',
             'is_subscribed', 'recipes', 'recipes_count'
         )
-        read_only_fields = ('email', 'username', 'first_name', 'last_name')
+        read_only_fields = ('email', 'username', 'first_name', 'last_name', 'avatar')
 
     def get_is_subscribed(self, obj):
         return True

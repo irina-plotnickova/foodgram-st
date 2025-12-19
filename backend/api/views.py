@@ -83,7 +83,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=['put'],
+        methods=['post'],
         permission_classes=(IsAuthenticated,),
     )
     def set_password(self, request):
@@ -110,7 +110,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         user.set_password(new_password)
         user.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=True,
